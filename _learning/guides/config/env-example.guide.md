@@ -2,6 +2,10 @@
 
 > **File:** `.env.example` (project root)
 > **Role:** Documents every environment variable the project needs, with safe default values. This file is committed to git. The actual `.env` file (with real values) is not.
+>
+> **In this snapshot:** `.env.example` itself is not included. The README Quick Start lists its ten variables so you can create `.env` by hand.
+>
+> **What the code actually reads (checked against this snapshot).** Only two of the ten variables are read by name: `DATABASE_URL` (`src/lib/db/index.ts:6`, which throws `DATABASE_URL is required.` on line 9 when it is missing, and `drizzle.config.ts:8`) and `REDIS_URL` (`worker/index.ts:4`, with a `redis://localhost:6379` fallback). `NEXTAUTH_SECRET` and `NEXTAUTH_URL` are never referenced in this repository's code; whether they matter depends on how `next-auth` 5.0.0-beta.25 itself reads the environment. The other six (`SIMULATE_DATA`, `SIMULATION_INTERVAL_MS`, `READ_MODEL_REFRESH_INTERVAL_MS`, `APPROVAL_EXPIRY_HOURS`, `DEFAULT_RATE_LIMIT_WINDOW_MS`, `LOG_LEVEL`) are not read anywhere. The sections below describe what each variable is *meant* to control; each one now says what the current code does instead.
 
 ---
 
@@ -45,7 +49,9 @@ The connection string for PostgreSQL. Let's decode it:
 
 Notice how these values align with `docker-compose.yml`. The compose file *creates* the database with these credentials; the `.env` file tells the app how to *connect* to it.
 
-If you're running the app inside Docker (via `docker compose up`), `localhost` works because the compose networking handles it. If you were running the app outside Docker but the database inside Docker, `localhost` also works because we exposed port 5432.
+If you run the app on your machine and only the database in Docker, `localhost` works because `docker-compose.yml` publishes port 5432 (line 35).
+
+If you run the `app` or `worker` service *inside* Docker (`docker compose up`), it does **not** work. Both services load this same `.env` (`env_file`, lines 8-9 and 20-21), and inside a container `localhost` is the container itself, not the `postgres` or `redis` service. Containers on the compose network reach each other by service name, so those services need `DATABASE_URL=postgresql://opsforge:opsforge_dev@postgres:5432/opsforge` and `REDIS_URL=redis://redis:6379`. One `.env` cannot serve both setups as written; a per-service `environment:` override in `docker-compose.yml` is the usual fix.
 
 ### Redis Connection
 
@@ -55,7 +61,7 @@ REDIS_URL=redis://localhost:6379
 
 Connection string for Redis. Simpler than Postgres because our local Redis has no authentication (no username or password). Port 6379 is the Redis default.
 
-BullMQ and any direct Redis usage in the app reads this URL. Like the database URL, this matches what `docker-compose.yml` sets up.
+In this code only the worker reads it: `worker/index.ts:4` passes it to `IORedis`, and BullMQ's `Queue` and `Worker` (lines 8-10) share that connection. Like the database URL, this matches what `docker-compose.yml` sets up.
 
 ### Authentication
 
@@ -81,9 +87,9 @@ SIMULATE_DATA=true
 SIMULATION_INTERVAL_MS=60000
 ```
 
-**`SIMULATE_DATA`** -- When `true`, the app generates fake incidents, operations, and other data to simulate a live environment. This is incredibly useful for development -- you get realistic-looking data without needing real infrastructure events.
+**`SIMULATE_DATA`** -- Intended to switch on generated fake incidents, operations, and other data so development looks like a live environment. In this snapshot nothing reads it: `runHealthSimulator` (`src/lib/simulators/health-simulator.ts:1-3`) only returns a timestamp, and nothing in `src/` or `worker/` outside `src/lib/simulators/` calls it.
 
-**`SIMULATION_INTERVAL_MS`** -- How often (in milliseconds) the simulator creates new data. `60000` ms = 60 seconds = 1 minute. So every minute, the simulator produces new mock events.
+**`SIMULATION_INTERVAL_MS`** -- Intended to say how often (in milliseconds) the simulator creates new data. `60000` ms = 60 seconds = 1 minute. Nothing schedules the simulator yet, so the value has no effect.
 
 The `_MS` suffix convention is good practice. Without it, you'd have to guess whether `60000` means milliseconds, seconds, or something else. Being explicit in variable names prevents bugs.
 
@@ -93,7 +99,7 @@ The `_MS` suffix convention is good practice. Without it, you'd have to guess wh
 READ_MODEL_REFRESH_INTERVAL_MS=300000
 ```
 
-**`READ_MODEL_REFRESH_INTERVAL_MS`** -- How often the read model (a denormalized/cached view of data) is refreshed. `300000` ms = 5 minutes.
+**`READ_MODEL_REFRESH_INTERVAL_MS`** -- Intended to say how often the read models (denormalized/cached views of data) are refreshed. `300000` ms = 5 minutes. The refresh functions in `src/lib/db/read-models/` are placeholders today; for example `refreshCustomerSummaryReadModel` (`customer-summary.ts:1-3`) only returns a timestamp, and nothing runs them on an interval.
 
 This suggests the project uses a CQRS-like pattern (Command Query Responsibility Segregation), where writes go to normalized tables and reads come from pre-computed views. The read model doesn't update in real-time; it refreshes at this interval. A shorter interval means more up-to-date reads but more database load. A longer interval means slightly stale reads but less work.
 
@@ -103,7 +109,7 @@ This suggests the project uses a CQRS-like pattern (Command Query Responsibility
 APPROVAL_EXPIRY_HOURS=24
 ```
 
-**`APPROVAL_EXPIRY_HOURS`** -- How long an approval request remains valid before it expires. `24` hours = 1 day. After this window, an unanswered approval is automatically marked as expired.
+**`APPROVAL_EXPIRY_HOURS`** -- Intended to set how long an approval request remains valid before it expires. `24` hours = 1 day. The schema has an `expiresAt` column (`src/lib/db/schema.ts:362`), but `createApprovalRequest` (`src/lib/approvals/service.ts:1-3`) is a stub that returns `{ operationId, status: "pending" }`, and nothing marks approvals as expired.
 
 This is a business rule expressed as configuration. By putting it in an environment variable (instead of hardcoding `24` somewhere in the code), you can change the policy without redeploying. Want approvals to last a week? Set it to `168`. Want 4 hours? Set it to `4`.
 
@@ -113,7 +119,7 @@ This is a business rule expressed as configuration. By putting it in an environm
 DEFAULT_RATE_LIMIT_WINDOW_MS=3600000
 ```
 
-**`DEFAULT_RATE_LIMIT_WINDOW_MS`** -- The time window for rate limiting. `3600000` ms = 3600 seconds = 1 hour. This controls how frequently certain operations can be performed (for example, "a user can trigger at most N operations per hour").
+**`DEFAULT_RATE_LIMIT_WINDOW_MS`** -- Intended as the time window for rate limiting. `3600000` ms = 3600 seconds = 1 hour (for example, "a user can trigger at most N operations per hour"). Today `checkRateLimit` (`src/lib/operations/rate-limiter.ts:1-3`) always returns `{ allowed: true, remaining: 10, ... }`, so there is no window to configure.
 
 Rate limiting prevents abuse and protects your system from being overwhelmed. The window defines the reset period -- counters go back to zero after this duration.
 
@@ -133,6 +139,8 @@ LOG_LEVEL=info
 | `error` | Things that went wrong |
 
 `info` is a sensible default for development. If you're debugging a specific issue, temporarily set it to `debug` for more detail. In production, `warn` or `info` is typical.
+
+In this snapshot there is no logger that reads `LOG_LEVEL`. The one logging switch in the code is `auditLog` (`src/lib/audit/log.ts:19-24`), which prints to the console whenever `NODE_ENV` is not `production`.
 
 ---
 
@@ -230,6 +238,14 @@ export const env = envSchema.parse(process.env);
 
 This validates all variables at startup and crashes immediately with a clear error if anything is missing or invalid. Much better than getting a cryptic `NaN` error 20 minutes into runtime.
 </details>
+
+### Exercise 4: Find Which Variables Are Real
+**Goal:** sort the ten variables into "read by this repository's code" and "documented only".
+**Check:** `git grep -n "process\.env" -- src worker drizzle.config.ts auth.ts middleware.ts` prints exactly four lines: `DATABASE_URL` twice (`drizzle.config.ts`, `src/lib/db/index.ts`), `NODE_ENV` once (`src/lib/audit/log.ts`) and `REDIS_URL` once (`worker/index.ts`). Your "documented only" list therefore has eight entries, and `NODE_ENV` is a variable the code reads that `.env.example` does not list.
+
+### Exercise 5: Make Docker Compose Reach Its Own Database
+**Goal:** let the `app` and `worker` containers connect to Postgres and Redis without breaking the "app on my machine" setup.
+**Check:** `docker-compose.yml` gives `app` and `worker` an `environment:` block whose `DATABASE_URL` host is `postgres` and whose `REDIS_URL` host is `redis` (these override the same names from `env_file`), while `.env` keeps `localhost`. With `docker compose up`, the worker logs `OpsForge worker online.` (`worker/index.ts:21`) instead of a Redis connection error.
 
 ---
 

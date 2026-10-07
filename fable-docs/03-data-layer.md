@@ -102,7 +102,7 @@ checks can race; unique constraints cannot.
 
 ## The connection: [`src/lib/db/index.ts`](../src/lib/db/index.ts)
 
-Seventeen lines, three professional patterns:
+Eighteen lines, three professional patterns:
 
 ```typescript
 import "server-only";                       // ① build error if a client component imports this

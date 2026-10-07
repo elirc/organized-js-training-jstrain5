@@ -97,7 +97,9 @@ This is what "convention over configuration" looks like in practice. Run it with
 lint`; CI runs the exact same command, which is why "it lints locally" and "it passes CI"
 are the same statement.
 
-## [`.env.example`](../.env.example) — configuration without secrets
+## `.env.example` — configuration without secrets
+
+> **In this snapshot:** the `.env.example` file is not included, so `cp .env.example .env` fails here. Create `.env` by hand from the variable list in the [README Quick Start](../README.md#quick-start). The convention below still applies.
 
 ```bash
 DATABASE_URL=postgresql://opsforge:opsforge_dev@localhost:5432/opsforge

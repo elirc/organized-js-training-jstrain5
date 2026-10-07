@@ -126,7 +126,7 @@ drop; the payload is duplicated elsewhere or the source file is too thin to carr
 |---|---|---|
 | `operations/commands-base.guide.md` | merge | The contract type opens the chapter. |
 | `operations/commands-registry.guide.md` | merge | Registry pattern, taught against the base type. |
-| `operations/commands-example.guide.md` | merge | "One pattern, 17 files" is the right insight; keep it compact. |
+| `operations/commands-example.guide.md` | merge | "One pattern, 17 files" is the right insight; keep it compact. (Dated note 2026-10-06: the directory holds 18 files, 16 commands plus `base.ts` and `registry.ts`.) |
 | `operations/engine.guide.md` | merge | 3-line stub; its *intended* pipeline becomes the chapter's spine. |
 | `operations/dry-run.guide.md` | merge | Blockers-vs-warnings survives as a section; 244 lines for an 8-line stub does not. |
 | `operations/rollback.guide.md` | merge | Reversibility discussion compresses to a section. |

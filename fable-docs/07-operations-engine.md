@@ -11,7 +11,7 @@ This is the heart of the app, and it's also where the schema from
 `dangerLevel`, `dryRun` defaulting to `true`, `idempotencyKey` with a unique index) are this
 pipeline, expressed as data.
 
-## The command pattern: one interface, seventeen implementations
+## The command pattern: one interface, sixteen implementations
 
 Everything starts with a five-line contract —
 [`src/lib/operations/commands/base.ts`](../src/lib/operations/commands/base.ts), the entire file:
@@ -39,7 +39,7 @@ function executeOperation(command: string, payload: any) {
 
 Every new operation means editing the same hot file. With the command pattern, every
 operation is *its own file* conforming to the shared type. Look at
-[`src/lib/operations/commands/`](../src/lib/operations/commands) — seventeen files
+[`src/lib/operations/commands/`](../src/lib/operations/commands) — sixteen command files plus `base.ts` and `registry.ts`
 (`customer-suspend.ts`, `billing-refund.ts`, `infra-region-failover.ts`, …), each shaped
 exactly like [`customer-plan-change.ts`](../src/lib/operations/commands/customer-plan-change.ts):
 
@@ -53,13 +53,13 @@ export const customer_plan_change: OperationCommand = {
 };
 ```
 
-Adding operation #18 means adding one file and touching nothing else. That's the
+In principle, adding operation #17 means adding one file and touching nothing else. (In this repo, `registerCommand` is defined but never called, so a new file is not picked up yet. Exercise 3 below has you find that.) That's the
 **Open/Closed Principle** in its practical form: open for extension, closed for
 modification. Notice also that *every* command carries `dryRun` alongside `execute` — the
 type makes it impossible to build an operation without a simulation mode. Safety encoded in
 the contract, the same trick as `dryRun: true` being the schema default.
 
-Yes, all seventeen bodies are placeholders. Read them for their *keys* instead: the
+Yes, all sixteen bodies are placeholders. Read them for their *keys* instead: the
 dot-notation (`customer.suspend`, `billing.invoice.void`, `infra.region.failover`) is a
 namespace, and [`src/lib/approvals/policies.ts`](../src/lib/approvals/policies.ts) will
 match against it (`command.includes("delete")`). Naming schemes are load-bearing.
@@ -80,7 +80,7 @@ export function getCommand(key: string) {
 }
 ```
 
-The engine never imports seventeen command files; it asks the registry for
+The engine never imports sixteen command files; it asks the registry for
 `getCommand("billing.refund")` and gets back *something that satisfies the contract*,
 without knowing or caring which file provided it. This decoupling is what lets commands be
 added/removed without touching the engine — and it's a miniature of how plugin systems,
@@ -206,7 +206,7 @@ in [Chapter 8](08-domain-services.md); for now: if it isn't audited, it didn't h
    `"customer.purge"`? Or `"customer.remove"`? Write the one-sentence policy bug report,
    then sketch a better design (hint: the schema already has `dangerLevel` — policy should
    key off declared danger, not substring luck).
-3. **Add command #18.** Create `src/lib/operations/commands/customer-merge.ts` following
+3. **Add command #17.** Create `src/lib/operations/commands/customer-merge.ts` following
    the pattern (key: `"customer.merge"`), and register it wherever you find the other
    commands being registered — search for `registerCommand` usages first. What you learn
    from that search *is the exercise*: is there central registration, or is it still

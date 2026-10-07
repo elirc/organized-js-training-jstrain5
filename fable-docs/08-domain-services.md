@@ -201,6 +201,8 @@ static mock rows) is standard practice for internal tools.
    enterprise/eu-west customer, (c) cus_042 on the free plan. Then verify by running
    `evaluateFlag` in a scratch file. (Answers: yes, no, yes — if you said (b) yes, reread
    the AND-within-a-rule part.)
+**Running items 1 and 3 without installing anything (Node 22.6 or later).** `rollout.ts` has no imports, so `node --experimental-strip-types` can import it directly. `evaluator.ts` imports `@/lib/feature-flags/rollout`, an alias that only the TypeScript and Next.js config resolve. Copy both files to a scratch folder and change that import to `./rollout.ts`. Run that way, item 1 should print a single distinct bucket for the ten calls (`hashToBucket` has no randomness, `rollout.ts:1-9`) and a count near 300 for the 1,000 IDs, and item 3 should print `true false true`. Write down the exact numbers you get; they are your baseline if anyone changes the hash. One more case is worth adding to your tests: a targeting rule written as `{}` (no plan, region or customer list) returns `true` for *every* customer, because none of its `if`s can reject (`evaluator.ts:28-33`). One empty object in the admin UI turns a targeted flag into a global launch. Validate rules at write time so that each one carries at least one condition.
+
 4. **Design review, on paper.** Sketch the discriminated-union version of `FeatureFlag`
    (three types, each carrying only its relevant fields) the way
    [Chapter 5](05-api-layer.md)'s envelope does it. Which impossible states does your

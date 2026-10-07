@@ -19,7 +19,7 @@ only doing trains.
 - **In order, one chapter per sitting.** Concepts compound; Chapter 7 assumes Chapters 3–5.
 - **With the repo open and running.** Do the "Try it yourself" exercises as you hit them —
   several ask you to break things on purpose and watch the failure. That's where the
-  learning is. (Setup: `cp .env.example .env`, `npm install`,
+  learning is. (Setup: create `.env` (this snapshot has no `.env.example`; the README lists the values), `npm install`,
   `docker compose up -d postgres redis`, `npm run dev` — details in Chapter 2.)
 - **With a coding agent nearby.** Every chapter ends with an "Ask your agent" exercise;
   Chapter 9 is entirely about that workflow.
@@ -59,6 +59,6 @@ Capstone, in rough order of difficulty — each uses skills from multiple chapte
 1. Implement a stubbed GET endpoint with real filtering + pagination (Ch. 5).
 2. Replace a placeholder page with a real data-backed table (Ch. 5–6).
 3. Add an `auditor` role end to end and prove it with two logins (Ch. 4).
-4. Add operation command #18 with a meaningful dry-run report (Ch. 7).
+4. Add operation command #17 with a meaningful dry-run report (Ch. 7).
 5. Plan (with an agent, plan-only) the real `engine.ts` pipeline, then implement one stage
    with audit logging (Ch. 7–9).

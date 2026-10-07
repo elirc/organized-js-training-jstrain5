@@ -298,7 +298,7 @@ This project is intentionally in a **Phase 1 / scaffolded** state. Here's what's
 | Customer API (list, detail) | **Functional** | Reads from mock data, has real validation |
 | All other API routes | **Scaffolded** | Return 501 Not Implemented |
 | All other pages | **Scaffolded** | Show PlaceholderView component |
-| Operations commands | **Scaffolded** | 17 commands defined but return placeholder results |
+| Operations commands | **Scaffolded** | 16 commands defined (plus `base.ts` and `registry.ts`) but return placeholder results |
 | Worker | **Scaffolded** | Processes jobs but does nothing meaningful |
 | Feature flag evaluator | **Functional** | Real evaluation logic with hash-based bucketing |
 | Incident severity classifier | **Functional** | Real classification logic |
